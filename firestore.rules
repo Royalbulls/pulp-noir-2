@@ -1,0 +1,239 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid (string), genres (list), intensity (string), elements (list), voice (string), updatedAt (number)
+    //
+    // Collection: users/{uid}/stories
+    // Fields: uid (string), type (string), content (string), feedback (string), createdAt (number)
+    //
+    // Collection: users/{uid}/drafts
+    // Fields: uid (string), text (string), createdAt (number)
+    //
+    // Collection: users/{uid}/lore
+    // Fields: uid (string), title (string), description (string), location (string), createdAt (number)
+    //
+    // Collection: users/{uid}/characters
+    // Fields: name (string), personality (string), motivations (string), flaws (string), backstory (string), role (string), archetype (string), createdAt (number)
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email == "royalbullsadvisory412@gmail.com" &&
+             request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    function isValidUser(data) {
+      // SECURITY WARNING: In production, 'isPro' should only be updatable by a server-side process (e.g., Stripe webhook)
+      return data.keys().hasAll(['uid', 'genres', 'intensity', 'elements', 'voice']) &&
+             data.uid == request.auth.uid &&
+             data.genres is list && data.genres.size() <= 20 &&
+             data.intensity in ['mild', 'moderate', 'extreme'] &&
+             data.elements is list && data.elements.size() <= 20 &&
+             data.voice is string && 
+             (!('selectedVoiceCloneId' in data) || (data.selectedVoiceCloneId == null || (data.selectedVoiceCloneId is string && data.selectedVoiceCloneId.size() <= 128))) &&
+             (!('visualStyle' in data) || (data.visualStyle is string && data.visualStyle.size() <= 200)) &&
+             (!('aspectRatio' in data) || data.aspectRatio in ['16:9', '9:16', '1:1', '4:3']) &&
+             (!('visualMood' in data) || (data.visualMood is string && data.visualMood.size() <= 200)) &&
+             (!('bundelkhandiMode' in data) || data.bundelkhandiMode is bool) &&
+             (!('webSeriesMode' in data) || data.webSeriesMode is bool) &&
+             (!('freeTrail' in data) || data.freeTrail is bool) &&
+             (!('isPro' in data) || data.isPro is bool) &&
+             (!('isActivated' in data) || data.isActivated is bool) &&
+             (!('naughtyMode' in data) || data.naughtyMode is bool) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 200000)) &&
+             (!('customName' in data) || (data.customName is string && data.customName.size() <= 100)) &&
+             (!('preferredRole' in data) || data.preferredRole in ['hero', 'villain', 'aam-aadami', 'none']) &&
+             (!('subscriptionType' in data) || data.subscriptionType in ['monthly', 'yearly', 'lifetime', 'trial', 'none']) &&
+             (!('subscriptionExpiry' in data) || data.subscriptionExpiry is number) &&
+             (!('evolution' in data) || data.evolution is map) &&
+             (!('updatedAt' in data) || data.updatedAt is number);
+    }
+
+    function isValidStory(data) {
+      return data.keys().hasAll(['uid', 'type', 'content', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.type in ['text', 'image', 'joke', 'character', 'script', 'song', 'item-song', 'reconstruction', 'life-journey', 'video', 'masterlist', 'pulp-noir-story'] &&
+             data.content is string && data.content.size() <= 1048576 &&
+             data.createdAt is number &&
+             (!('threadId' in data) || (data.threadId == null || (data.threadId is string && data.threadId.size() <= 128))) &&
+             (!('audioUrl' in data) || (data.audioUrl == null || (data.audioUrl is string && data.audioUrl.size() <= 2000))) &&
+             (!('musicUrl' in data) || (data.musicUrl == null || (data.musicUrl is string && data.musicUrl.size() <= 2000))) &&
+             (!('bpm' in data) || (data.bpm == null || data.bpm is number)) &&
+             (!('isGeneratingMusic' in data) || data.isGeneratingMusic is bool) &&
+             (!('isGeneratingNarration' in data) || data.isGeneratingNarration is bool) &&
+             (!('feedback' in data) || data.feedback in ['up', 'down', 'none']) &&
+             (!('isSaved' in data) || data.isSaved is bool) &&
+             (!('isPublic' in data) || data.isPublic is bool) &&
+             (!('isFlagged' in data) || data.isFlagged is bool) &&
+             (!('tags' in data) || (data.tags is list && data.tags.size() <= 50)) &&
+             (!('matchScore' in data) || data.matchScore is number) &&
+             (!('moderationReason' in data) || (data.moderationReason is string && data.moderationReason.size() <= 1000)) &&
+             (!('choices' in data) || (data.choices is list && data.choices.size() <= 20)) &&
+             (!('selectedChoice' in data) || (data.selectedChoice is string && data.selectedChoice.size() <= 1000)) &&
+             (!('storyLinkId' in data) || (data.storyLinkId == null || (data.storyLinkId is string && data.storyLinkId.size() <= 128)));
+    }
+
+    function isValidThread(data) {
+      return data.keys().hasAll(['uid', 'title', 'createdAt', 'updatedAt']) &&
+             data.uid == request.auth.uid &&
+             data.title is string && data.title.size() <= 200 &&
+             (!('preview' in data) || (data.preview == null || (data.preview is string && data.preview.size() <= 1000))) &&
+             data.createdAt is number &&
+             data.updatedAt is number;
+    }
+
+    function isValidDraft(data) {
+      return data.keys().hasAll(['uid', 'text', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.text is string && data.text.size() <= 6000 &&
+             data.createdAt is number;
+    }
+
+    function isValidLore(data) {
+      return data.keys().hasAll(['uid', 'title', 'description', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.title is string && data.title.size() <= 250 &&
+             data.description is string && data.description.size() <= 6000 &&
+             (!('location' in data) || (data.location == null || (data.location is string && data.location.size() <= 300))) &&
+             data.createdAt is number;
+    }
+
+    function isValidCharacter(data) {
+      return data.keys().hasAll(['name', 'personality', 'motivations', 'flaws', 'backstory', 'role', 'createdAt']) &&
+             data.name is string && data.name.size() <= 150 &&
+             data.personality is string && data.personality.size() <= 1500 &&
+             data.motivations is string && data.motivations.size() <= 1500 &&
+             data.flaws is string && data.flaws.size() <= 1500 &&
+             data.backstory is string && data.backstory.size() <= 6000 &&
+             data.role is string && data.role.size() <= 300 &&
+             (!('archetype' in data) || (data.archetype == null || (data.archetype is string && data.archetype.size() <= 150))) &&
+             (!('gender' in data) || (data.gender == null || (data.gender is string && data.gender.size() <= 150))) &&
+             (!('dob' in data) || (data.dob == null || (data.dob is string && data.dob.size() <= 150))) &&
+             (!('tob' in data) || (data.tob == null || (data.tob is string && data.tob.size() <= 150))) &&
+             (!('pob' in data) || (data.pob == null || (data.pob is string && data.pob.size() <= 300))) &&
+             (!('kundli' in data) || (data.kundli == null || (data.kundli is string && data.kundli.size() <= 15000))) &&
+             (!('isActive' in data) || data.isActive is bool) &&
+             data.createdAt is number;
+    }
+
+    function isValidAccessKey(data) {
+      return data.keys().hasAll(['key', 'isUsed', 'createdAt']) &&
+             data.key is string &&
+             data.isUsed is bool &&
+             data.createdAt is number &&
+             (!('usedBy' in data) || (data.usedBy == null || data.usedBy is string)) &&
+             (!('usedAt' in data) || (data.usedAt == null || data.usedAt is number));
+    }
+
+    function isValidVoiceClone(data) {
+      return data.keys().hasAll(['uid', 'name', 'sampleData', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.name is string && data.name.size() <= 300 &&
+             data.sampleData is string && data.sampleData.size() <= 2000000 && 
+             (!('analysis' in data) || (data.analysis == null || (data.analysis is string && data.analysis.size() <= 15000))) &&
+             (!('isPrimary' in data) || data.isPrimary is bool) &&
+             data.createdAt is number;
+    }
+
+    function isValidNoirReport(data) {
+      return data.keys().hasAll(['uid', 'reportId', 'subjectName', 'caseHeadline', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.reportId is string && data.reportId.size() <= 150 &&
+             data.subjectName is string && data.subjectName.size() <= 250 &&
+             data.caseHeadline is string && data.caseHeadline.size() <= 600 &&
+             (!('authorizedBy' in data) || (data.authorizedBy == null || (data.authorizedBy is string && data.authorizedBy.size() <= 300))) &&
+             (!('date' in data) || (data.date == null || (data.date is string && data.date.size() <= 150))) &&
+             (!('location' in data) || (data.location == null || (data.location is string && data.location.size() <= 600))) &&
+             (!('forensicCaseFile' in data) || (data.forensicCaseFile == null || (data.forensicCaseFile is string && data.forensicCaseFile.size() <= 60000))) &&
+             (!('subjectProfile' in data) || (data.subjectProfile == null || (data.subjectProfile is string && data.subjectProfile.size() <= 15000))) &&
+             (!('fieldIntel' in data) || (data.fieldIntel == null || (data.fieldIntel is string && data.fieldIntel.size() <= 15000))) &&
+             (!('cinematicNarration' in data) || (data.cinematicNarration == null || (data.cinematicNarration is string && data.cinematicNarration.size() <= 60000))) &&
+             (!('webSeriesPlot' in data) || (data.webSeriesPlot == null || (data.webSeriesPlot is string && data.webSeriesPlot.size() <= 15000))) &&
+             (!('systemAssessment' in data) || (data.systemAssessment == null || (data.systemAssessment is string && data.systemAssessment.size() <= 7000))) &&
+             (!('signature' in data) || (data.signature == null || (data.signature is string && data.signature.size() <= 300))) &&
+             (!('isFreeTier' in data) || data.isFreeTier is bool) &&
+             data.createdAt is number;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && (isValidUser(request.resource.data) || isAdmin());
+      
+      match /stories/{storyId} {
+        allow read: if isOwner(uid) || (resource != null && resource.data.isPublic == true);
+        allow create, update: if isOwner(uid) && (isValidStory(request.resource.data) || isAdmin());
+        allow delete: if isOwner(uid);
+      }
+      
+      match /threads/{threadId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && (isValidThread(request.resource.data) || isAdmin());
+        allow delete: if isOwner(uid);
+      }
+
+      match /drafts/{draftId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && (isValidDraft(request.resource.data) || isAdmin());
+        allow delete: if isOwner(uid);
+      }
+
+      match /lore/{loreId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && (isValidLore(request.resource.data) || isAdmin());
+        allow delete: if isOwner(uid);
+      }
+
+      match /characters/{charId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && (isValidCharacter(request.resource.data) || isAdmin());
+        allow delete: if isOwner(uid);
+      }
+
+      match /voices/{voiceId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && (isValidVoiceClone(request.resource.data) || isAdmin());
+        allow delete: if isOwner(uid);
+      }
+
+      match /noir_reports/{reportId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && (isValidNoirReport(request.resource.data) || isAdmin());
+        allow delete: if isOwner(uid);
+      }
+    }
+
+    match /access_keys/{keyId} {
+      allow get: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+                    resource.data.isUsed == false && 
+                    request.resource.data.isUsed == true &&
+                    request.resource.data.usedBy == request.auth.uid &&
+                    (isValidAccessKey(request.resource.data) || isAdmin());
+      allow create, list, delete: if isAdmin();
+    }
+
+    // Collection Group rule for Public Gallery
+    match /{path=**}/stories/{storyId} {
+      allow read: if resource.data.isPublic == true;
+    }
+  }
+}

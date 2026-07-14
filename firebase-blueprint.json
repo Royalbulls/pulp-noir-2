@@ -1,0 +1,208 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User preferences and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "genres": { "type": "array", "items": { "type": "string" } },
+        "intensity": { "type": "string", "enum": ["mild", "moderate", "extreme"] },
+        "elements": { "type": "array", "items": { "type": "string" } },
+        "voice": { "type": "string", "enum": ["Fenrir", "Puck", "Charon", "Kore", "Zephyr"] },
+        "selectedVoiceCloneId": { "type": "string", "description": "UID of the selected voice clone" },
+        "visualStyle": { "type": "string", "description": "Preferred art style for image generation" },
+        "aspectRatio": { "type": "string", "enum": ["16:9", "9:16", "1:1", "4:3"], "description": "Preferred aspect ratio for images" },
+        "visualMood": { "type": "string", "description": "Preferred visual mood/atmosphere" },
+        "bundelkhandiMode": { "type": "boolean", "description": "Whether Bundelkhandi regional mode is active" },
+        "isPro": { "type": "boolean", "description": "Whether the user has pro access" },
+        "subscriptionType": { "type": "string", "enum": ["monthly", "yearly", "lifetime", "trial", "none"] },
+        "subscriptionExpiry": { "type": "number" },
+        "evolution": {
+          "type": "object",
+          "properties": {
+            "version": { "type": "string" },
+            "totalGenerations": { "type": "number" },
+            "positiveFeedback": { "type": "number" },
+            "negativeFeedback": { "type": "number" },
+            "currentFocus": { "type": "string" }
+          }
+        },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["uid", "genres", "intensity", "elements", "voice"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "Generated story or content",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner UID" },
+        "threadId": { "type": "string", "description": "The thread this story belongs to" },
+        "type": { "type": "string", "enum": ["text", "image", "joke", "character", "script", "song", "item-song", "life-journey", "pulp-noir-story"] },
+        "content": { "type": "string" },
+        "audioUrl": { "type": "string" },
+        "musicUrl": { "type": "string" },
+        "bpm": { "type": "number", "description": "Tempo in Beats Per Minute for generated audio track" },
+        "isGeneratingMusic": { "type": "boolean" },
+        "isGeneratingNarration": { "type": "boolean" },
+        "feedback": { "type": "string", "enum": ["up", "down", "none"] },
+        "isSaved": { "type": "boolean" },
+        "isPublic": { "type": "boolean" },
+        "choices": { "type": "array", "items": { "type": "string" }, "description": "Interactive story choices" },
+        "selectedChoice": { "type": "string" },
+        "matchScore": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "isFlagged": { "type": "boolean" },
+        "moderationReason": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "type", "content", "createdAt"]
+    },
+    "ChatThread": {
+      "title": "Chat Thread",
+      "description": "A conversation thread grouping story parts/messages",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner UID" },
+        "title": { "type": "string", "description": "Thread title" },
+        "preview": { "type": "string", "description": "Last message preview" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["uid", "title", "createdAt", "updatedAt"]
+    },
+    "Draft": {
+      "title": "Draft",
+      "description": "Saved story draft",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner UID" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "text", "createdAt"]
+    },
+    "WorldLore": {
+      "title": "World Lore",
+      "description": "Lore and setting information for the story world",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner UID" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string", "description": "Specific location context (e.g., Sagar, MP)" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "title", "description", "createdAt"]
+    },
+    "AccessKey": {
+      "title": "Access Key",
+      "description": "Product activation keys",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "description": "The unique activation code" },
+        "isUsed": { "type": "boolean", "description": "Whether the key has been activated" },
+        "usedBy": { "type": "string", "description": "UID of the user who used it" },
+        "usedAt": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["key", "isUsed", "createdAt"]
+    },
+    "Character": {
+      "title": "Character",
+      "description": "Saved noir character for reuse",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "personality": { "type": "string" },
+        "motivations": { "type": "string" },
+        "flaws": { "type": "string" },
+        "backstory": { "type": "string" },
+        "role": { "type": "string" },
+        "archetype": { "type": "string" },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
+        "dob": { "type": "string", "description": "Date of Birth (YYYY-MM-DD)" },
+        "tob": { "type": "string", "description": "Time of Birth (HH:mm)" },
+        "pob": { "type": "string", "description": "Place of Birth" },
+        "kundli": { "type": "string", "description": "AI-generated noir astrology reading" },
+        "isActive": { "type": "boolean", "description": "Whether this character clone is active" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "personality", "motivations", "flaws", "backstory", "role", "createdAt"]
+    },
+    "VoiceClone": {
+      "title": "Voice Clone",
+      "description": "User's registered voice recording and analysis",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner UID" },
+        "name": { "type": "string", "description": "Nickname for the voice" },
+        "sampleData": { "type": "string", "description": "Base64 encoded audio sample" },
+        "analysis": { "type": "string", "description": "AI acoustic analysis of the voice" },
+        "isPrimary": { "type": "boolean", "description": "Whether this is the default clone" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "name", "sampleData", "createdAt"]
+    },
+    "NoirReport": {
+      "title": "Noir Report",
+      "description": "Generated forensic intelligence report",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "reportId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "authorizedBy": { "type": "string" },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "caseHeadline": { "type": "string" },
+        "forensicCaseFile": { "type": "string" },
+        "subjectProfile": { "type": "string" },
+        "fieldIntel": { "type": "string" },
+        "systemAssessment": { "type": "string" },
+        "signature": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "reportId", "subjectName", "caseHeadline", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile settings"
+    },
+    "/users/{uid}/stories/{storyId}": {
+      "schema": "Story",
+      "description": "User's generated stories"
+    },
+    "/users/{uid}/threads/{threadId}": {
+      "schema": "ChatThread",
+      "description": "User's conversation threads"
+    },
+    "/users/{uid}/drafts/{draftId}": {
+      "schema": "Draft",
+      "description": "User's saved drafts"
+    },
+    "/users/{uid}/lore/{loreId}": {
+      "schema": "WorldLore",
+      "description": "User's world lore and settings"
+    },
+    "/users/{uid}/characters/{charId}": {
+      "schema": "Character",
+      "description": "User's saved characters in the vault"
+    },
+    "/users/{uid}/voices/{voiceId}": {
+      "schema": "VoiceClone",
+      "description": "User's registered voice doubles"
+    },
+    "/users/{uid}/noir_reports/{reportId}": {
+      "schema": "NoirReport",
+      "description": "User's forensic intelligence reports"
+    },
+    "/access_keys/{keyId}": {
+      "schema": "AccessKey",
+      "description": "Global activation keys"
+    }
+  }
+}

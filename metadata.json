@@ -1,0 +1,10 @@
+{
+  "name": "Remix: Pulp Noir: The Gritty Storyteller",
+  "description": "An AI-powered storyteller for adult audiences, generating gritty pulp noir visual stories, item songs, and narrated noir cinema.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
